@@ -1,38 +1,13 @@
 #!/bin/sh
-chef_client_cmd()
-{
-  chef-client -z -l {{cfg.log_level}} -c {{pkg.svc_config_path}}/client-config.rb -j {{pkg.svc_config_path}}/attributes.json --once --no-fork --run-lock-timeout {{cfg.run_lock_timeout}}
-}
-SPLAY_DURATION=$({{pkgPathFor "core/coreutils"}}/bin/shuf -i 0-{{cfg.splay}} -n 1)
-SPLAY_FIRST_RUN_DURATION=$({{pkgPathFor "core/coreutils"}}/bin/shuf -i 0-{{cfg.splay_first_run}} -n 1)
+
 export SSL_CERT_FILE="{{pkgPathFor "core/cacerts"}}/ssl/cert.pem"
+
 cd {{pkg.path}}
-# After the first run of the chef-client,
-# export the new package ident so that
-# other software can bind to it.
-# For example, this is useful for InSpec
-# to execute its run hook immediately after
-# the chef-client run has finished.
-exec 2>&1
-sleep $SPLAY_FIRST_RUN_DURATION
-#chef_client_cmd
 
 while true; do
   if [ $SECONDS -gt {{cfg.interval}} ]; then
     SECONDS=0
-    sleep $SPLAY_DURATION
-    vals=($(seq 0 1 $(expr {{cfg.count}} - 1)))
-    for i in "${vals[@]}"; do
-      INSTANCE_NODE_IDX=$(echo "{{sys.hostname}}" | {{pkgPathFor "core/sed"}}/bin/sed 's/[^0-9]*//g')
-      INSTANCE_NODE_IDX_EXPANDED=$(printf "%05d\n" $(expr $INSTANCE_NODE_IDX \* 10 + $i))
-      INSTANCE_NODE_NAME=$(echo "{{sys.hostname}}" | {{pkgPathFor "core/sed"}}/bin/sed 's/[0-9]*//g')
-      INSTANCE_NODE_NAME_EXPANDED="${INSTANCE_NODE_NAME}${INSTANCE_NODE_IDX_EXPANDED}"
-      INSTANCE_GUID="{{sys.member_id}}"
-      INSTANCE_GUID_EXPANDED="${INSTANCE_GUID::${#INSTANCE_GUID}-5}${INSTANCE_NODE_IDX_EXPANDED}"
-      {{pkgPathFor "core/sed"}}/bin/sed -i "s/^node_name.*$/node_name \"$INSTANCE_NODE_NAME_EXPANDED\"/g" {{pkg.svc_config_path}}/client-config.rb
-      {{pkgPathFor "core/sed"}}/bin/sed -i "s/^chef_guid.*$/chef_guid \"$INSTANCE_GUID_EXPANDED\"/g" {{pkg.svc_config_path}}/client-config.rb
-      chef_client_cmd
-    done
+    chef-client -z -l {{cfg.log_level}} -c {{pkg.svc_config_path}}/client-config.rb -j {{pkg.svc_config_path}}/attributes.json --once --no-fork --run-lock-timeout {{cfg.run_lock_timeout}}
   fi
   sleep 1
 done
