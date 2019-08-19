@@ -45,5 +45,5 @@ node['os-hardening']['components'].each do |component, state|
 end
 
 package 'telnet-server' do
-  action :remove
+  action :install
 end
