@@ -20,4 +20,4 @@ suites:
     verifier:
       inspec_tests:
         - name: cis-centos7-level1-wrapper
-          compliance: admin/cis-centos7-lv1-wrapper
+          path: ../../inspec/profiles/cis-centos7-lv1-wrapper # compliance: admin/cis-centos7-lv1-wrapper
